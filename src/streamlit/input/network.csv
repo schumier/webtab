@@ -1,10 +1,8 @@
 ﻿from,to,flag,join_type
 F CFV Summary View,D Facillity,N,left
-R Entity to Facility,D Facillity,Y,inner
 R Entity to Facility,D Party,N,left
 F CFV Detail View,D Party,N,right
 F CFV Detail View,D Account,N,left
-D Account,D Country,Y,inner
 D Treasury Deal,F Instrument,N,right
 F CFV Detail View,D Treasury Deal,N,left
 F CFV Summary View,H Group Legal,N,inner
@@ -24,3 +22,7 @@ F CFV Summary View,D Country Standard Mapping,N,left
 F CFV Summary View,H GL BS Node,N,left
 F CFV Summary View,H Economic Profit,N,left
 F CFV Summary View,H Economic Profit FR,N,left
+F CFV Summary View,D Party,N,left
+D Party,D Party Classification,N,left
+D Party Classification,D CTO Officer,N,left
+F CFV Detail View,D Time,N,left

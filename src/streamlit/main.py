@@ -77,11 +77,11 @@ filtered_data = app_data[app_data["App name"].isin(selected_apps)].copy()
 
 # Add a simple bar chart as HTML in the table for Views %
 def bar_html(percent):
-    bar_width = int(percent * 2)  # scale for visual (max 200px for 100%)
+    bar_width = int(percent * 0.52)  # scale for visual (max 200px for 100%)
     color = "#4CAF50"
     # Remove any newlines from the HTML string
     html = (
-        f"<div style='background: #eee; width: 200px; height: 18px; position: relative; border-radius: 4px;'>"
+        f"<div style='background: #eee; width: 100%; height: 18px; position: relative; border-radius: 4px;'>"
         f"<div style='background: {color}; width: {bar_width}px; height: 18px; border-radius: 4px;'></div>"
         f"<div style='position: absolute; left: {bar_width + 5}px; top: 0; font-size: 12px;'>{percent:.1f}%</div>"
         f"</div>"
@@ -100,7 +100,21 @@ show_cols = [
 
 st.subheader("App Ranking Table with Views % Bar Chart")
 st.write(
-    filtered_data[show_cols].to_html(escape=False, index=False),
+    filtered_data[show_cols].to_html(escape=False, index=False, classes="my-table"),
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <style>
+        .my-table, .my-table th, .my-table td {
+            font-size: 11px !important;
+        }
+        .my-table th {
+            text-align: left !important;
+        }
+    </style>
+    """,
     unsafe_allow_html=True
 )
 
