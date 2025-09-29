@@ -1,0 +1,3 @@
+--- Find All possible node to specific node
+--- Put Filter on node Type : dimension/dated/
+--- SSAS Column summary
