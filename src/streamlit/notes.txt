@@ -1,3 +1,6 @@
 --- Find All possible node to specific node
 --- Put Filter on node Type : dimension/dated/
 --- SSAS Column summary
+
+1.Add node label on graphviz
+2.add exclusion node on between first node and last node
