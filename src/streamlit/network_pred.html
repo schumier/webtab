@@ -88,8 +88,8 @@
                   
 
                   // parsing and collecting nodes and edges from the python
-                  nodes = new vis.DataSet([{"color": "#bde0fe", "font": {"size": 12}, "id": "F CFV Detail View", "label": "F CFV Detail View", "shape": "box"}, {"color": "#fca311", "font": {"size": 18}, "id": "D Time", "label": "D Time", "shape": "box"}, {"color": "#fca311", "font": {"size": 18}, "id": "H Group Legal", "label": "H Group Legal", "shape": "box"}, {"color": "#bde0fe", "font": {"size": 12}, "id": "F CFV Summary View", "label": "F CFV Summary View", "shape": "box"}]);
-                  edges = new vis.DataSet([{"arrows": "to", "color": "#e63946", "from": "F CFV Summary View", "to": "H Group Legal"}, {"arrows": "to", "color": "#00a6fb", "from": "F CFV Detail View", "to": "D Time"}, {"arrows": "to", "color": "#00a6fb", "from": "F CFV Summary View", "to": "D Time"}]);
+                  nodes = new vis.DataSet([{"color": "#fca311", "font": {"size": 18}, "id": "H Group Legal", "label": "H Group Legal", "shape": "box"}, {"color": "#bde0fe", "font": {"size": 12}, "id": "F CFV Summary View", "label": "F CFV Summary View", "shape": "box"}, {"color": "#fca311", "font": {"size": 18}, "id": "D Time", "label": "D Time", "shape": "box"}, {"color": "#bde0fe", "font": {"size": 12}, "id": "F CFV Detail View", "label": "F CFV Detail View", "shape": "box"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#e63946", "font": {"size": 9}, "from": "F CFV Summary View", "title": "RPTG_COST_CTR_CD=LEAF_NODE", "to": "H Group Legal"}, {"arrows": "to", "color": "#00a6fb", "font": {"size": 9}, "from": "F CFV Detail View", "title": "BUSN_DT=CAL_DT", "to": "D Time"}, {"arrows": "to", "color": "#00a6fb", "font": {"size": 9}, "from": "F CFV Summary View", "title": "BUSN_DT=CAL_DT", "to": "D Time"}]);
 
                   nodeColors = {};
                   allNodes = nodes.get({ returnType: "Object" });

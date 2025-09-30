@@ -1,28 +1,35 @@
-﻿from,to,flag,join_type
-F CFV Summary View,D Facillity,N,left
-R Entity to Facility,D Party,N,left
-F CFV Detail View,D Party,N,right
-F CFV Detail View,D Account,N,left
-D Treasury Deal,F Instrument,N,right
-F CFV Detail View,D Treasury Deal,N,left
-F CFV Summary View,H Group Legal,N,inner
-F CFV Summary View,X H Group Legal Dated,N,inner
-F CFV Summary View,H Group Segment,N,inner
-F CFV Summary View,X H Group Segment Dated,N,inner
-F CFV Summary View,H Product Reporing View,N,left
-F CFV Summary View,X H Product Reporting View Dated,N,left
-F CFV Summary View,H GL Node Account,N,inner
-F CFV Summary View,X H GL Node Account Dated,N,inner
-F CFV Summary View,D Time,N,left
-F CFV Summary View,H Node Legal,N,left
-F CFV Summary View,D Currency Filter,N,left
-F CFV Summary View,D Balance Type,N,left
-F CFV Summary View,D Country,N,left
-F CFV Summary View,D Country Standard Mapping,N,left
-F CFV Summary View,H GL BS Node,N,left
-F CFV Summary View,H Economic Profit,N,left
-F CFV Summary View,H Economic Profit FR,N,left
-F CFV Summary View,D Party,N,left
-D Party,D Party Classification,N,left
-D Party Classification,D CTO Officer,N,left
-F CFV Detail View,D Time,N,left
+﻿from,to,flag,join_type,join_key,from_cat,to_cat
+F CFV Summary View,D Facillity,N,left,FAC_ID=FAC_ID,facts,Dimension
+R Entity to Facility,D Party,N,left,PRTY_EDW_ID=PRTY_EDW_ID,Reference,Dimension
+F CFV Detail View,D Party,N,right,PRTY_EDW_ID=PRTY_EDW_ID,facts,Dimension
+F CFV Detail View,D Account,N,left,AGMT_EDW_ID=AGMT_EDW_ID,facts,Dimension
+D Treasury Deal,F Instrument,N,right,INSTM_ID=INSTM_ID,Dimension,Dimension
+F CFV Detail View,D Treasury Deal,N,left,AGMT_EDW_ID=AGMT_EDW_ID,facts,Dimension
+F CFV Summary View,H Group Legal,N,inner,RPTG_COST_CTR_CD=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,X H Group Legal Dated,N,inner,BUSNDT_RPTG_COST_CTR_CD=BUSN_DT_LEAF_NODE,facts,Dated
+F CFV Summary View,H Group Segment,N,inner,RPTG_COST_CTR_CD=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,X H Group Segment Dated,N,inner,BUSNDT_RPTG_COST_CTR_CD=BUSN_DT_LEAF_NODE,facts,Dated
+F CFV Summary View,H Product Reporting View,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,X H Product Reporting View Dated,N,left,BUSN_DT_ENTREPRISE_LEAF_NODE=BUSN_DT_LEAF_NODE,facts,Dated
+F CFV Summary View,H GL Node Account,N,inner,GL_ACCT_NUM=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,X H GL Node Account Dated,N,inner,BUSNT_DT_GL_ACCT_NUM=BUSN_DT_LEAF_NODE,facts,Dated
+F CFV Summary View,D Time,N,left,BUSN_DT=CAL_DT,facts,Dimension
+F CFV Summary View,H Node Legal,N,left,COST_CTR=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,D Currency Filter,N,left,CURRY_TYP_CD=CURRY_CD,facts,Dimension
+F CFV Summary View,D Balance Type,N,left,BAL_TYPE=BAL_TYPE_CD,facts,Dimension
+F CFV Summary View,D Country,N,left,CTRY=CTRY_ID,facts,Dimension
+F CFV Summary View,D Country Standard Mapping,N,left,CTRY=CTRY_ID,facts,Dimension
+F CFV Summary View,H GL BS Node,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,H Economic Profit,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,H Economic Profit FR,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,D Party,N,left,PRTY_EDW_ID=PRTY_EDW_ID,facts,Dimension
+D Party,D Party Classification,N,left,PRTY_EDW_ID=PRTY_EDW_ID,Dimension,Dimension
+D Party Classification,D CTO Officer,N,left,CTO_EDW_ID=CTO_OFCR_ID,Dimension,Dimension
+F CFV Detail View,D Time,N,left,BUSN_DT=CAL_DT,facts,Dimension
+R Account to Facility,D Account,Y,inner,AGMT_EDW_ID=AGMT_EDW_ID,Reference,Dimension
+R Account to Facility,D Facillity,Y,inner,FAC_ID=FAC_ID,Reference,Dimension
+D Facillity,D Party,N,left,PRTY_FAC_EDW_ID=PRTY_EDW_ID,Dimension,Dimension
+F CFV Detail View,H GL BS Node,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Detail View,H Economic Profit,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Detail View,H Economic Profit FR,N,left,ENTREPRISE_LEAF_NODE=LEAF_NODE,facts,Hierarchy
+F CFV Summary View,D Account,N,left,AGMT_EDW_ID_SEC_DSP_LBL_SITE_ID_INSTM_CD_EPLN_COST_CTR=AGMT_EDW_ID_INSTM_LBL_INSTM_ID_SITE_ID_EPLN,facts,Dimension
