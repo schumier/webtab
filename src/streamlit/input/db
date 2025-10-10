@@ -1,0 +1,17 @@
+DBSQL;EAUD
+session character set=UTF16;data source=apledwusgd01;authenticationmechanism=LDAP;persist security info=True
+Data Source=SSASDBpsgv0m;Initial Catalog="FRR Merged Model"
+Data Source=SSASDBusgv11;Initial Catalog="SSAS Summary In-Memory"
+Data Source=SSASDBusgv12;Initial Catalog="SSAS Summary In-Memory"
+Data Source=SSASDBusgv1m;Initial Catalog="FRR Merged Model";Cube=Model
+Data Source=SSASDBpsgv0M;Initial Catalog="FRR Merged Model"
+Data Source=SSASDBpsgv0M;Initial Catalog="FRR Merged Model"
+Data Source=SSASDBusgv1m;Initial Catalog="SSAS Merged Model"
+Data Source=SSASDBusgv1m;Initial Catalog="SSAS Merged Model"
+DBSQLuv1;EAUD|DBSQLuv2;EAUD|dsn=SSAS_TD_AUDITLOG_UNCUEDASG|DBSQLuv3;EAUD
+DBSQLuv1;EAUD|DBSQLuv2;EAUD|DBSQLuv3;EAUD
+Data Source=SSASDBusgv1m;Initial Catalog="SSAS Merged Model"
+DBSQLuv1;DEDAu
+Data Source=SSASDBusgv1m;Initial Catalog="SSAS CCRM Summary Model"
+/Path1/Recon
+Data Source=SSASDBpsgv0m;Initial Catalog="SSAS Merged Model"
