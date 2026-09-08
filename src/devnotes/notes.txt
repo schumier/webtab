@@ -360,3 +360,280 @@ Reusable for Similar Occurrence?: Yes
 Status/Reference: optional, mainly for Known Issue
 
 That gives Python structured information for future decision-making while keeping the actual Hive conclusion as human-entered evidence.
+
+
+
+
+
+
+
+
+Yes. I would calculate them in stages, because Deviation, Normal Range, Consecutive Direction, and Trend are related but measure different things.
+
+Suppose one UIM has these month-end duplicate counts:
+
+ME	Duplicate
+
+Apr	100
+May	105
+Jun	98
+Jul	102
+Aug	140
+
+
+We are evaluating August.
+
+1. Deviation from 3M Average %
+
+Use the three completed month-ends before the current month, so don't include August itself.
+
+3M average:
+
+\[
+Avg3M = \frac{May+Jun+Jul}{3}
+\]
+
+\[
+=\frac{105+98+102}{3}=101.67
+\]
+
+Then:
+
+\[
+Deviation\%=
+\frac{Current-Avg3M}{Avg3M}\times100
+\]
+
+For August:
+
+\[
+\frac{140-101.67}{101.67}\times100
+=\mathbf{+37.7\%}
+\]
+
+Meaning:
+
+> August is 37.7% above its recent 3-month average.
+
+
+
+This is useful, but +37.7% by itself doesn't tell you whether that movement is statistically unusual.
+
+
+---
+
+2. Historical Normal Range
+
+This is where you measure how much this particular UIM normally fluctuates.
+
+I would not use only 3 months for this. If available, use perhaps the previous 12 month-ends.
+
+A simple first method is:
+
+\[
+Historical\ Mean \pm 2 \times Standard\ Deviation
+\]
+
+Suppose the previous 12 ME values produce:
+
+Historical Mean = 101
+
+Standard Deviation = 6
+
+Then:
+
+\[
+Lower=101-(2\times6)=89
+\]
+
+\[
+Upper=101+(2\times6)=113
+\]
+
+So:
+
+> Historical Normal Range = 89–113
+
+
+
+August = 140
+
+Therefore:
+
+> 🔴 Above historical normal range
+
+
+
+This is much stronger evidence than merely saying August increased from July.
+
+Important for your data
+
+Because duplicate/null data may have historical spikes, I'd eventually test a median/MAD-based range, which is less distorted by outliers. But mean ± 2 SD is much easier for your first prototype and for explaining the concept to your team.
+
+
+---
+
+3. Consecutive Direction
+
+This doesn't need statistics. Look at the direction of recent month-end movements.
+
+For example:
+
+May 100 → Jun 110 → Jul 125 → Aug 150
+
+Comparisons:
+
+Jun > May ↑
+Jul > Jun ↑
+Aug > Jul ↑
+
+So:
+
+> 3 consecutive increases ↑↑↑
+
+
+
+Another UIM:
+
+150 → 130 → 115 → 100
+
+becomes:
+
+> 3 consecutive decreases ↓↓↓
+
+
+
+And:
+
+100 → 130 → 105 → 140
+
+becomes:
+
+> Mixed / alternating ↑↓↑
+
+
+
+I would store two things internally:
+
+direction = UP / DOWN / MIXED / FLAT
+
+and
+
+consecutive_periods = 3
+
+Then Streamlit can display:
+
+> ↑ Increasing 3 ME
+
+
+
+instead of exposing the technical calculation.
+
+
+---
+
+4. Trend
+
+Now combine the above signals.
+
+This is where I'd avoid making Current > Previous automatically mean Deteriorating.
+
+For a metric where higher = worse, such as duplicate count:
+
+🔴 Deteriorating
+
+Current is materially above expected behaviour and/or showing a sustained adverse movement.
+
+For example:
+
+3M Avg = 102
+Current = 140
+Deviation = +37%
+Historical range = 89–113
+Consecutive direction = ↑ 3 ME
+
+→ Deteriorating
+
+🟢 Improving
+
+Suppose:
+
+180 → 155 → 130 → 110
+
+and historical normal is 90–115.
+
+Current has moved substantially downward and is approaching/returning to its normal range.
+
+→ Improving
+
+⚪ Stable
+
+Suppose:
+
+100 → 103 → 99 → 102
+
+Historical range 90–113.
+
+Small movements, all within normal historical variability.
+
+→ Stable
+
+🟠 Volatile
+
+Suppose:
+
+100 → 150 → 90 → 145
+
+Large movements in opposite directions.
+
+→ Volatile
+
+
+---
+
+Putting everything together
+
+You could have this in your backend analysis table:
+
+UIM	Current	Prev	3M Avg	Dev vs 3M	Normal Range	Direction	Trend
+
+UIM-A	140	102	101.7	+37.7%	89–113	↑ 1	🔴 Deteriorating
+UIM-B	108	105	103.0	+4.9%	90–115	↑ 2	⚪ Stable
+UIM-C	110	130	145.0	-24.1%	90–115	↓ 3	🟢 Improving
+UIM-D	145	90	113.3	+28.0%	85–120	Mixed	🟠 Volatile
+
+
+Notice UIM-B is increasing for two periods, but it's still classified Stable because the movement remains within its normal historical variability.
+
+That's why I wouldn't derive Trend from consecutive direction alone.
+
+
+---
+
+One improvement I'd make for your ~1,000 UIMs
+
+I'd calculate a standardized deviation as well:
+
+\[
+Z = \frac{Current-HistoricalMean}{HistoricalSD}
+\]
+
+This gives you a common scale across very different UIM volumes.
+
+For example:
+
+UIM A: Z = +0.4 → quite normal
+UIM B: Z = +2.3 → unusual
+UIM C: Z = +5.1 → extremely unusual
+
+Even if one UIM normally has 100 records and another normally has 1,000,000 records, you can compare how unusual each one is relative to its own history.
+
+I wouldn't necessarily show the term Z-score prominently to users. You can use it behind the scenes and display something understandable like:
+
+> Within Expected Range
+Above Expected Range
+Significantly Above Expected Range
+
+
+
+That could ultimately be very useful for your Top UIMs requiring attention ranking.
