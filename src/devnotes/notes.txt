@@ -1,0 +1,130 @@
+Exactly — you should not send every UIM to Hive investigation. The combination of Trend + Historical Pattern should help determine which UIMs actually deserve investigation.
+
+I would start with a simple investigation matrix:
+
+Trend	Historical Pattern	Suggested Action	Why
+
+🔴 Deteriorating	New	🔴 Investigate	New adverse movement
+🔴 Deteriorating	Persistent	🔴 Investigate / Review	Existing issue continues to worsen
+🔴 Deteriorating	Recurring	🔴 Investigate	Previous issue has returned and is worsening
+🟢 Improving	Persistent	🟡 Monitor / Review	Still abnormal, but moving in right direction
+🟢 Improving	Recurring	🟡 Monitor	Currently improving; previous history available
+→ Stable	Persistent	🟡 Monitor	Issue remains but isn't getting worse
+→ Stable	Recurring	🟡 Monitor / Review previous observation	May already have an explanation
+🟢 Improving	Resolved	🟢 No investigation	Returned toward normal
+→ Stable	Resolved	🟢 No investigation	No current concern
+
+
+But I would add one more condition: severity
+
+This is important. Deteriorating doesn't automatically mean investigate.
+
+For example:
+
+100 → 101 → 102 → 103
+
+Technically deteriorating, but probably not worth going into Hive.
+
+Whereas:
+
+100 → 105 → 110 → 180
+
+is different.
+
+So your investigation decision should be more like:
+
+> Trend + Historical Pattern + Magnitude/Statistical Deviation
+
+
+
+For example:
+
+Investigate
+
+Deteriorating + New + outside statistical tolerance
+
+Deteriorating + Recurring + outside tolerance
+
+Deteriorating + Persistent + materially worse
+
+Any extremely unusual statistical movement, regardless of pattern
+
+
+Monitor
+
+Persistent but Stable
+
+Persistent but Improving
+
+Small deterioration still within normal historical variability
+
+Recurring but currently within expected range
+
+
+No Action
+
+Resolved
+
+Stable within normal range
+
+Improving and back within normal range
+
+
+Previous Hive observations can reduce unnecessary investigation even further
+
+This is where the observation history you mentioned becomes really valuable.
+
+Suppose:
+
+> UIM A
+Trend: Deteriorating
+Pattern: Recurring
+Statistical deviation: High
+Previous Hive observation: “Expected seasonal increase at quarter end.”
+
+
+
+Instead of immediately reinvestigating, the dashboard could show:
+
+⚠ Review Previous Observation
+
+The analyst checks whether the same explanation applies before running another Hive investigation.
+
+Compare that with:
+
+> UIM B
+Trend: Deteriorating
+Pattern: New
+Statistical deviation: High
+Previous observation: None
+
+
+
+That should probably go straight to:
+
+🔴 Hive Investigation
+
+This gives you a useful fourth output
+
+Rather than just Trend and Pattern, derive:
+
+Recommended Review Action
+
+🔴 Hive Investigation
+🟠 Review Previous Observation
+🟡 Monitor
+🟢 No Action
+
+For your ~1,000 UIM population, that's probably one of the most useful summary metrics:
+
+> ~1,000 UIMs analyzed
+14 Hive Investigation
+11 Review Previous Observation
+32 Monitor
+Remaining: No Action
+
+
+
+Then analysts don't have to interpret hundreds of combinations themselves.
+
+And importantly, I would call this “Recommended Review Action”, not automatically say “Issue” or “Root Cause.” The dashboard is prioritizing where human investigation is worthwhile; Hive and the analyst still determine what actually happened.
