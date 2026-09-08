@@ -985,3 +985,222 @@ UIM population (LATEST_VERSION=Y)
 → Observation retained for future month-end analysis
 
 That last part closes the loop nicely: today's manual investigation becomes useful context for next month's automated analysis, instead of disappearing into an Excel remark.
+
+
+
+
+
+
+
+
+
+Yes. I would not merge the statistical result and manual investigation into one status. Keep them as separate layers, then derive one final Recommended Action / Overall Status from both.
+
+That keeps the logic explainable.
+
+1. Statistical layer — Python determines this
+
+For every UIM/month-end:
+
+Statistical field	Example
+
+Current ME	15,200
+Previous ME	10,500
+3M Average	10,200
+Historical Normal Range	9,300–11,100
+Deviation vs 3M Avg	+49%
+Trend	🔴 Deteriorating
+Issue Pattern	🔄 Recurring
+Statistical Signal	Outside Expected Range
+
+
+Python's conclusion is basically:
+
+> “This UIM's behaviour is unusual.”
+
+
+
+It does not conclude why.
+
+
+---
+
+2. Historical investigation layer — analyst knowledge
+
+Then check whether there is a previous applicable observation.
+
+For example:
+
+> Previous occurrence: May-26
+Outcome: Expected / Normal
+Finding: Quarter-end facility volume increase
+Reusable: Yes
+
+
+
+This tells the system:
+
+> “We have seen similar unusual statistical behaviour before and an analyst determined that it was expected.”
+
+
+
+
+---
+
+3. Combine them into Recommended Action
+
+This is where the two layers meet.
+
+Statistical result	Previous Investigation	Reusable?	Recommended Action
+
+Within expected range	Any	—	🟢 No Action
+Unusual + New	None	—	🔴 Hive Investigation
+Unusual + Persistent	None	—	🔴 Hive Investigation
+Unusual + Recurring	None	—	🔴 Hive Investigation
+Unusual	Expected / Normal	Yes	🟠 Review Previous Observation
+Unusual	Known Issue, still open	Yes	🟠 Review / Monitor Known Issue
+Unusual	Data Issue, unresolved	Yes	🟠 Review Existing Issue
+Unusual	Previous explanation no longer applicable	No	🔴 Hive Investigation
+Extremely unusual vs previous occurrence	Expected / Normal	Yes	🔴 Re-investigate
+Improving but still outside range	Existing explanation	Yes	🟡 Monitor
+Returned within expected range	Previous issue	—	🟢 No Action / Resolved
+
+
+So statistical analysis determines whether attention is warranted, while investigation history determines whether you already understand it.
+
+
+---
+
+4. Then the analyst takes action
+
+Suppose Python produces:
+
+> Trend: Deteriorating
+Pattern: Recurring
+Deviation: +49%
+Statistical Signal: Unusual
+Previous Observation: Expected quarter-end movement
+Reusable: Yes
+Recommended Action: 🟠 Review Previous Observation
+
+
+
+The analyst can click:
+
+“Previous Observation Still Applicable”
+
+Then you record a new observation for August:
+
+> Outcome: Expected / Normal
+Source: Previous observation confirmed
+Reusable: Yes
+Investigation Status: Closed
+
+
+
+No Hive query was necessary.
+
+But if analyst clicks:
+
+“Previous Observation Not Applicable”
+
+then:
+
+> Recommended Action → 🔴 Hive Investigation
+Investigation Status → In Progress
+
+
+
+After checking Hive, perhaps they discover a genuine issue:
+
+> Outcome → Data Issue
+Finding → Unexpected duplicated facility records
+Reusable → No
+Investigation Status → Closed
+
+
+
+
+---
+
+5. I'd actually have three statuses on your dashboard
+
+This makes the model much clearer.
+
+A. Statistical Status
+
+Automatically calculated:
+
+Normal / Unusual / Highly Unusual
+
+B. Recommended Action
+
+Automatically derived:
+
+No Action / Monitor / Review Previous Observation / Hive Investigation
+
+C. Investigation Status
+
+Human workflow:
+
+Not Started / In Progress / Awaiting Confirmation / Closed
+
+And separately keep:
+
+Investigation Outcome
+
+Expected/Normal / Known Issue / Data Issue / Under Investigation / Other
+
+For example:
+
+UIM	Statistical	Trend	Pattern	Recommended Action	Investigation Status	Outcome
+
+UIM A	Highly Unusual	Deteriorating	New	🔴 Hive Investigation	In Progress	Under Investigation
+UIM B	Unusual	Deteriorating	Recurring	🟠 Review Previous	Closed	Expected / Normal
+UIM C	Unusual	Improving	Persistent	🟡 Monitor	Closed	Known Issue
+UIM D	Normal	Stable	Resolved	🟢 No Action	Closed	—
+
+
+This also gives you much better summary analytics
+
+At the top of Streamlit you could show:
+
+Statistical Analysis
+
+> 980 UIMs analyzed
+52 Unusual
+11 Highly Unusual
+
+
+
+Recommended Action
+
+> 🔴 14 Hive Investigation
+🟠 10 Review Previous Observation
+🟡 28 Monitor
+🟢 928 No Action
+
+
+
+Investigation Progress
+
+> 14 requiring Hive investigation
+5 Closed | 4 In Progress | 3 Awaiting Confirmation | 2 Not Started
+
+
+
+Investigation Outcomes
+
+> 6 Expected/Normal | 3 Known Issues | 2 Data Issues | 3 Under Investigation
+
+
+
+That last part is particularly useful because over time you can answer something new:
+
+> “Of the statistical anomalies we identified, how many actually became confirmed data issues?”
+
+
+
+That can eventually help you tune your statistical thresholds. If Python is producing 100 anomalies every month but 95 are consistently confirmed as Expected/Normal, your model is too sensitive. If most investigated anomalies reveal genuine issues, your prioritization is working well.
+
+So the manual Hive findings don't just sit beside the statistical analysis — they eventually provide feedback for improving the statistical rules themselves.
