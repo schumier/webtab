@@ -846,3 +846,142 @@ Recommended action: 🟠 Review Previous Observation
 
 
 That combination of Trend + Pattern + Previous Observation is what I would use to determine whether Hive investigation is actually necessary.
+
+
+
+
+
+
+
+
+
+For the manual Hive investigation, I’d keep the input form quite small. The dashboard has already done the statistical analysis, so analysts should only record the human conclusion that Python cannot determine.
+
+I’d use this final structure:
+
+Field	Type	Example
+
+UIM Filename	Auto-filled	AUUIMDAPPFACDTL0300
+Month-End Date	Auto-filled	31-Aug-2026
+Investigation Date	Auto timestamp	03-Sep-2026
+Investigator	Auto/user	Analyst A
+Observation Outcome	Dropdown	Expected / Normal
+Observation / Hive Finding	Free text	Increase driven by expected month-end facility volume
+Reusable for Similar Occurrence?	Yes / No	Yes
+Reference	Optional text	INC12345 / Jira / email reference
+Investigation Status	Derived / controlled	Closed
+
+
+Observation Outcome
+
+I would keep these five:
+
+Expected / Normal — Hive confirms the movement is valid/expected and there is no data issue.
+
+Known Issue — already-understood issue, normally with an existing ticket/action/reference.
+
+Data Issue — Hive confirms an actual data problem requiring action.
+
+Under Investigation — analysis isn't finished or confirmation is still required.
+
+Other — valid finding that doesn't fit the categories.
+
+Investigation status should be different from outcome
+
+I'd use a very simple workflow:
+
+Not Started → In Progress → Awaiting Confirmation → Closed
+
+For example:
+
+> Outcome: Under Investigation
+Status: Awaiting Confirmation
+
+
+
+Later, when upstream confirms:
+
+> Outcome: Known Issue
+Status: Closed
+Reference: INC12345
+
+
+
+This means you retain the actual investigation lifecycle instead of mixing it with the finding.
+
+Multiple observations for the same month-end
+
+As we discussed, don't overwrite observations.
+
+For one UIM/month-end, the detail could look like:
+
+AUUIMDAPPFACDTL0300 — Aug-26
+
+Date	Analyst	Outcome	Observation
+
+02-Sep	Analyst A	Under Investigation	Increase confirmed in Hive; checking source
+03-Sep	Analyst B	Under Investigation	Upstream team contacted
+05-Sep	Analyst A	Expected / Normal	Confirmed expected month-end facility volume
+
+
+The latest observation determines the current displayed outcome, but the entire history remains available.
+
+How I would make the Streamlit experience
+
+When the dashboard determines:
+
+> 🔴 Investigate in Hive
+
+
+
+the analyst clicks the UIM.
+
+The top section already shows:
+
+Current: 15,200
+Previous: 10,500
+3M Avg: 10,200
+Deviation: +49%
+Normal Range: 9,400–11,100
+Trend: Deteriorating
+Pattern: Recurring
+Previous occurrence: May-26
+
+Then show:
+
+Previous Hive Observation
+
+> May-26 — Expected / Normal
+“Increase related to quarter-end facility volume.”
+Reusable: Yes
+
+
+
+Then give two obvious actions:
+
+✓ Previous Observation Still Applicable
+
+or
+
+Investigate in Hive
+
+That first button is important. If the analyst confirms the previous explanation still applies, they shouldn't need to type the same remark again.
+
+If they choose Investigate in Hive, show the small observation form.
+
+The resulting end-to-end decision flow
+
+I'd now describe your entire analytical logic as:
+
+UIM population (LATEST_VERSION=Y)
+→ Month-end metrics
+→ Historical baseline & variability
+→ Trend: Improving / Stable / Deteriorating / Volatile
+→ Pattern: New / Persistent / Recurring / Resolved
+→ Previous observation check
+→ Recommended Action: Investigate / Review Previous / Monitor / No Action
+→ Manual Hive investigation where required
+→ Structured Observation Outcome + Remarks
+→ Observation retained for future month-end analysis
+
+That last part closes the loop nicely: today's manual investigation becomes useful context for next month's automated analysis, instead of disappearing into an Excel remark.
