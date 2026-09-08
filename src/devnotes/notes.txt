@@ -637,3 +637,212 @@ Significantly Above Expected Range
 
 
 That could ultimately be very useful for your Top UIMs requiring attention ranking.
+
+
+
+
+
+
+
+
+
+
+
+
+For Issue Pattern, I would determine it from the historical sequence of whether each month-end was outside or inside the expected range.
+
+So first, for every UIM/month-end, create:
+
+Exception = Y → outside your defined normal/tolerance range
+Exception = N → within expected range
+
+Then New/Persistent/Recurring becomes straightforward.
+
+Example
+
+Assume we're evaluating August:
+
+UIM	May	Jun	Jul	Aug	Issue Pattern
+
+A	N	N	N	Y	🆕 New
+B	N	Y	Y	Y	⚠️ Persistent
+C	Y	N	N	Y	🔄 Recurring
+D	Y	Y	Y	N	✅ Resolved
+E	N	N	N	N	Normal
+
+
+New
+
+Current ME is an exception, but there was no exception in the historical lookback window.
+
+Example:
+
+N → N → N → Y
+
+→ New
+
+Meaning:
+
+> “This UIM has newly moved outside its expected range.”
+
+
+
+
+---
+
+Persistent
+
+Current ME is an exception and the immediately preceding ME was also an exception.
+
+Example:
+
+N → Y → Y → Y
+
+→ Persistent — 3 consecutive ME
+
+You can calculate the consecutive count:
+
+> Persistent 2M
+Persistent 3M
+Persistent 6M
+
+
+
+This is more useful than just saying Persistent.
+
+
+---
+
+Recurring
+
+Current ME is an exception, the previous ME(s) returned to normal, but an older exception exists.
+
+Example:
+
+Y → N → N → Y
+
+→ Recurring
+
+Or:
+
+Y → N → Y → N → Y
+
+→ Recurring
+
+Meaning:
+
+> “We've seen this abnormal behaviour before, it normalized, and now it has returned.”
+
+
+
+This is where your previous Hive observations become especially valuable.
+
+
+---
+
+Resolved
+
+Previous ME was an exception, but current ME is back within expected range:
+
+Y → Y → Y → N
+
+→ Resolved
+
+You may want to keep Resolved visible for one month-end and then stop showing it as an active pattern afterward.
+
+
+---
+
+One important decision: historical lookback
+
+You need to decide how far back counts as “New”.
+
+Suppose:
+
+Jan-24 = Exception
+then normal for 18 months
+Aug-26 = Exception
+
+Technically it occurred before, but calling August 2026 Recurring because something happened 18+ months ago may not be useful.
+
+I'd therefore define a lookback, perhaps:
+
+> Pattern lookback = previous 6 or 12 month-ends
+
+
+
+Then:
+
+No exception within lookback + current Y → New
+
+Previous ME Y + current Y → Persistent
+
+Previous ME N + an earlier Y within lookback + current Y → Recurring
+
+The appropriate 6/12 months should be agreed based on your UIM behaviour.
+
+
+---
+
+This is separate from Trend
+
+This is important for your final data model.
+
+Suppose historical normal range is 90–110:
+
+Jan 180 → Feb 160 → Mar 140 → Apr 120
+
+All four are outside the expected range.
+
+So:
+
+Issue Pattern: ⚠️ Persistent 4M
+Trend: 🟢 Improving
+
+That's perfectly valid. It's been an issue for four months, but it's getting better.
+
+Another:
+
+100 → 101 → 103 → 160
+
+could be:
+
+Pattern: 🆕 New
+Trend: 🔴 Deteriorating
+
+Another:
+
+160 → 102 → 100 → 155
+
+could be:
+
+Pattern: 🔄 Recurring
+Trend: 🔴 Deteriorating
+
+
+---
+
+I'd store these separately in your backend
+
+For each UIM/ME:
+
+Exception_YN
+Trend_Category
+Issue_Pattern
+Consecutive_Exception_ME
+Previous_Exception_ME
+Deviation_From_Baseline
+Investigation_Status
+
+Then you can derive useful statements such as:
+
+> AUUIMDAPPFACDTL0300
+Trend: 🔴 Deteriorating
+Pattern: 🔄 Recurring
+Previous occurrence: May-26
+Previous observation: Expected quarter-end volume
+Recommended action: 🟠 Review Previous Observation
+
+
+
+That combination of Trend + Pattern + Previous Observation is what I would use to determine whether Hive investigation is actually necessary.
