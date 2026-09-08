@@ -128,3 +128,235 @@ Remaining: No Action
 Then analysts don't have to interpret hundreds of combinations themselves.
 
 And importantly, I would call this “Recommended Review Action”, not automatically say “Issue” or “Root Cause.” The dashboard is prioritizing where human investigation is worthwhile; Hive and the analyst still determine what actually happened.
+
+
+
+Yes. I’d make Investigation Status the final derived result, after considering the statistical analysis and previous Hive observations. That prevents the team from investigating every UIM just because a number moved.
+
+A clean decision flow would be:
+
+Latest Version = Y
+→ Calculate current ME vs previous ME
+→ Compare against historical baseline/variability
+→ Determine Trend
+→ Determine Historical Pattern
+→ Check previous Hive observation
+→ Determine Investigation Status
+
+Recommended final logic
+
+Condition	Previous Observation	Final Investigation Status
+
+Within normal historical variability	Any	🟢 No Action
+Deteriorating + New + materially unusual	None	🔴 Investigate in Hive
+Deteriorating + Persistent + materially unusual	No applicable explanation	🔴 Investigate in Hive
+Deteriorating + Recurring + materially unusual	No applicable explanation	🔴 Investigate in Hive
+Deteriorating / Recurring	Previous observation explains the same behaviour as expected/normal	🟢 No Further Investigation
+Deteriorating / Recurring	Previous observation exists but applicability is uncertain	🟠 Review Previous Observation
+Persistent but Stable	Known/expected	🟡 Monitor
+Persistent but Improving	Known/expected	🟡 Monitor
+Improving and returned to normal range	Any	🟢 No Action
+Extreme statistical movement	Even if history exists	🔴 Investigate / Validate
+
+
+The last row is important. I wouldn't let an old remark permanently suppress investigation.
+
+For example, last quarter someone wrote:
+
+> “Normal increase due to month-end volume.”
+
+
+
+If the normal increase was historically +10–15%, but this month is suddenly +150%, the dashboard shouldn't automatically say No Action just because a previous observation exists.
+
+Make previous observations structured
+
+Rather than relying only on free-text remarks, I'd add one small classification when the analyst closes an investigation:
+
+Observation Outcome
+
+Expected / Normal
+Known Issue
+Data Issue
+Under Investigation
+Other
+
+And optionally:
+
+Applicable for future occurrence? Yes / No
+
+Then keep the detailed Hive explanation as free text.
+
+For example:
+
+> Outcome: Expected / Normal
+Reusable: Yes
+Observation: Increase is expected during quarter-end due to facility volume.
+Observation Date: 03-Sep-2026
+
+
+
+Next time the same UIM behaves similarly, Python can identify:
+
+> Previous comparable observation available → Review / No Further Investigation
+
+
+
+rather than forcing another Hive investigation.
+
+I would actually use four final statuses
+
+This is simple enough for users:
+
+🔴 Investigate
+New/unexplained/materially abnormal movement requiring Hive.
+
+🟠 Review Previous Observation
+Similar historical movement exists; analyst checks whether the previous explanation still applies.
+
+🟡 Monitor
+Still showing an exception/pattern but stable or improving and doesn't currently justify Hive work.
+
+🟢 No Action
+Within normal range, resolved, or previously validated expected behaviour remains applicable.
+
+This gives you a very useful summary at the top of the page:
+
+> August Month-End — 980 UIMs analyzed
+🔴 12 Investigate | 🟠 8 Review Previous Observation | 🟡 24 Monitor | 🟢 936 No Action
+
+
+
+One thing I wouldn't fully automate
+
+I wouldn't let Python read a free-text Hive remark and automatically decide that something is normal. In a banking environment, that's difficult to explain and potentially risky.
+
+Instead, when the analyst enters the observation, have them explicitly select:
+
+Outcome = Expected/Normal
+
+and perhaps:
+
+Reusable for similar future movement = Yes
+
+Then your decision logic is deterministic and auditable.
+
+So the full concept becomes:
+
+> Statistics identify unusual behaviour → history identifies whether it is new/persistent/recurring → previous validated observations prevent unnecessary repeat investigation → analysts investigate only the remaining unexplained material movements.
+
+
+
+That, to me, is the strongest version of the analysis feature you've been developing.
+
+
+
+
+
+
+Yes. I would make Observation Outcome describe what the analyst concluded from Hive, while Future Occurrence = Yes/No means whether this conclusion can be reused when a similar pattern appears again.
+
+Observation Outcome	Example scenario after Hive investigation	Future Occurrence
+
+Expected / Normal	UIM increases every quarter-end because business volume normally rises. No data problem found.	Yes if this behaviour is expected to repeat under the same circumstances
+Expected / Normal	One-time portfolio migration caused the increase, but data is correct.	No because it was a one-off event
+Known Issue	Upstream team has an existing defect/ticket causing duplicates and it remains unresolved.	Yes while the known issue remains active
+Known Issue	Known defect caused this month-end issue but has now been fixed.	No because future occurrences shouldn't automatically be attributed to the fixed issue
+Data Issue	Hive confirms unexpected duplicate records caused by incorrect source data. New issue, remediation required.	Usually No initially
+Data Issue	A known recurring source-data behaviour is confirmed and expected to continue until a planned remediation.	Could be Yes, although I would normally classify this as Known Issue after the first investigation
+Under Investigation	Hive analysis started but root cause isn't established yet / waiting for upstream team confirmation.	No — never automatically reuse an unresolved conclusion
+Other	Explanation doesn't fit the categories, e.g. exceptional regulatory exercise or special business event.	Yes/No depending on whether it can reasonably recur
+
+
+There is one terminology change I'd recommend, though.
+
+Don't call it simply “Future Occurrence”
+
+That could be interpreted as:
+
+> “Do you think this issue will happen again?”
+
+
+
+That's not quite what you need.
+
+What you actually want to know is:
+
+> “If a similar movement occurs again, can this observation be used to explain it?”
+
+
+
+So I'd name the field:
+
+Reusable for Similar Occurrence? — Yes / No
+
+For example:
+
+> Outcome: Expected / Normal
+Observation: Higher facility population is expected at quarter-end.
+Reusable for Similar Occurrence: Yes
+
+
+
+Next quarter:
+
+Same UIM + similar magnitude + same period/pattern
+
+→ dashboard finds the previous observation
+→ 🟠 Review Previous Observation
+→ analyst confirms it still applies
+→ 🟢 No Further Investigation
+
+I wouldn't automatically make reusable = No mean Hive investigation either
+
+Consider:
+
+> Outcome = Expected / Normal
+Reusable = No
+Reason = One-time migration in August.
+
+
+
+If September is normal, nothing needs investigation.
+
+If September has another abnormal movement, then the August explanation cannot be reused, so that new unexplained movement may require Hive investigation.
+
+Known Issue needs one additional concept
+
+For Known Issue, I'd strongly consider storing an Issue Status or reference:
+
+> Known Issue: Upstream duplicate-generation defect
+Reference: INC/Problem ID if available
+Status: Open
+Reusable: Yes
+
+
+
+Then next month if the same UIM deteriorates:
+
+Known issue still Open + similar behaviour
+
+→ 🟠 Review Known Issue / Monitor
+
+rather than immediately repeating the same Hive investigation.
+
+But if:
+
+Known issue = Closed
+
+and the same abnormality comes back:
+
+→ 🔴 Investigate
+
+because you shouldn't automatically assume a closed issue caused it again.
+
+So your observation form could be very simple
+
+Month-End: 31-Aug-2026
+Observation Date: 03-Sep-2026
+Outcome: Expected / Normal ▼
+Observation: Increase due to expected quarter-end facility volume.
+Reusable for Similar Occurrence?: Yes
+Status/Reference: optional, mainly for Known Issue
+
+That gives Python structured information for future decision-making while keeping the actual Hive conclusion as human-entered evidence.
