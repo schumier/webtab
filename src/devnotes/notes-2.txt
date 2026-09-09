@@ -1,0 +1,555 @@
+Yes. In that mockup, the three status columns:
+
+Vol. Status | DQ Count Status | DQ Rate Status
+
+should all come from the statistical expected range, while the trend columns describe the direction over time.
+
+That's an important distinction.
+
+1. Status = Current value vs historical expected range
+
+For each metric independently, calculate from historical month-end observations:
+
+\[
+Median = Median(Historical\ Values)
+\]
+
+\[
+MAD = Median(|X-Median|)
+\]
+
+If you use the robust scaled MAD approach we discussed:
+
+\[
+Tolerance = 2 \times 1.4826 \times MAD
+\]
+
+Then:
+
+\[
+Lower = Median-Tolerance
+\]
+
+\[
+Upper = Median+Tolerance
+\]
+
+For non-negative metrics, cap the lower bound at zero.
+
+Then the basic status is:
+
+Current value	Status
+
+Current < Lower	Below Expected
+Lower ≤ Current ≤ Upper	Within Expected
+Current > Upper	Above Expected
+
+
+
+---
+
+Record Volume Status
+
+Suppose historical Record Count gives:
+
+> Median = 99K
+Expected Range = 91K–108K
+
+
+
+Current = 104K
+
+Therefore:
+
+> 🟢 Within Expected
+
+
+
+If current = 125K:
+
+> 🔴 Above Expected
+
+
+
+If current = 70K:
+
+> 🔵 Below Expected
+
+
+
+But don't interpret Above as automatically bad. It's just an unusual volume level.
+
+So I would actually label this:
+
+Volume Status
+
+Below | Within | Above
+
+Exactly as your mockup does.
+
+
+---
+
+DQ Count Status
+
+Same calculation, but based on historical DQ Count.
+
+Example:
+
+> Historical Median = 2.0K
+Expected Range = 1.5K–2.6K
+Current = 5.2K
+
+
+
+Therefore:
+
+> 🔴 Above Expected
+
+
+
+If current = 2.2K:
+
+> 🟢 Within Expected
+
+
+
+If current = 1.0K:
+
+> 🟢/🔵 Below Expected
+
+
+
+For DQ Count, below expected is generally favorable, so you may choose to display:
+
+Below Expected in green rather than blue.
+
+
+---
+
+DQ Rate Status
+
+Same again using DQ %.
+
+Example:
+
+> Historical Median = 2.00%
+Expected Range = 1.60–2.40%
+Current = 5.20%
+
+
+
+Therefore:
+
+> 🔴 Above Expected
+
+
+
+Current 2.10%:
+
+> 🟢 Within Expected
+
+
+
+Current 1.20%:
+
+> 🟢 Below Expected
+
+
+
+Again, lower DQ rate is normally favorable.
+
+
+---
+
+Status and Trend are different
+
+This is probably the most important part of your methodology.
+
+Imagine DQ Rate:
+
+6.0 → 5.5 → 5.0 → 4.5 → 4.0 → 3.5%
+
+Historical expected range:
+
+1.0–2.5%
+
+Then:
+
+DQ Rate Trend: 🟢 Improving
+
+but:
+
+DQ Rate Status: 🔴 Above Expected
+
+There is no contradiction.
+
+It means:
+
+> The problem is improving, but it has not yet returned to its expected historical level.
+
+
+
+Similarly:
+
+1.5 → 1.6 → 1.8 → 2.0 → 2.2 → 2.4%
+
+Expected range = 1.0–2.5%
+
+could be:
+
+> Trend: Deteriorating
+Status: Within Expected
+
+
+
+It's getting worse, but not yet statistically unusual.
+
+That combination is analytically useful.
+
+
+---
+
+I'd use slightly different terminology for each metric
+
+Because otherwise users may interpret everything as a DQ problem.
+
+Metric	Trend	Statistical Status
+
+Record Count	Growing / Stable / Declining / Mixed	Below / Within / Above Expected
+DQ Count	Increasing / Stable / Decreasing / Mixed	Below / Within / Above Expected
+DQ Rate	Deteriorating / Stable / Improving / Volatile	Below / Within / Above Expected
+
+
+So your row can say:
+
+> Record Volume: Growing · Within Expected
+DQ Count: Increasing · Above Expected
+DQ Rate: Deteriorating · Above Expected
+
+
+
+And that produces the useful conclusion in your mockup:
+
+> The DQ deterioration is unlikely to be explained simply by unusual record-volume growth.
+
+
+
+
+---
+
+One issue with MAD you should handle
+
+Suppose a UIM has historical DQ rates:
+
+0%, 0%, 0%, 0%, 0%, 0%, 0%, 0%
+
+Median = 0
+MAD = 0
+
+Your expected range becomes:
+
+0–0%
+
+Then even 0.001% becomes Above Expected.
+
+Technically that's correct relative to history, but operationally it could create too many alerts.
+
+So for your implementation, I would eventually support a minimum tolerance / business materiality rule in addition to the statistical range.
+
+Conceptually:
+
+> Statistically unusual AND material enough to care about
+
+
+
+For example, Python might detect:
+
+DQ Rate: 0% → 0.002%
+
+as statistically unusual, but if that's only 2 records, you may not want Hive investigation.
+
+This is where DQ Count + DQ Rate together becomes useful.
+
+Therefore, I'd define the methodology in 3 layers
+
+Trend
+
+> What direction is the metric moving?
+
+
+
+Statistical Status
+
+> Is the current value outside this key's historical expected range?
+
+
+
+Materiality / Action
+
+> Is the unusual movement large enough to warrant investigation?
+
+
+
+That is much cleaner than trying to make Above Expected itself mean “Investigate.”
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I would make Pattern and Action overall DQ-level fields, rather than creating separate patterns/actions for all three metrics.
+
+The clean hierarchy would be:
+
+Layer	Record Count	DQ Count	DQ Rate
+
+6ME chart	✓	✓	✓
+Trend	Volume Pattern	Count Trend	DQ Trend
+Statistical Status	Below/Within/Above	Below/Within/Above	Below/Within/Above
+Issue Pattern	—	—	Overall DQ Pattern
+Recommended Action	—	—	Overall decision
+
+
+Pattern — I would base it primarily on the DQ exception
+
+But I wouldn't say it is literally “DQ Rate pattern.”
+
+It should answer:
+
+> Has this DQ issue appeared before?
+
+
+
+First derive an overall DQ exception for every month-end from DQ Count + DQ Rate.
+
+For example:
+
+DQ_Exception = DQ Count materially unusual OR DQ Rate materially unusual
+
+Then look at that Y/N history:
+
+Previous history	Current	Pattern
+
+N N N	Y	🆕 New
+N Y Y	Y	⚠️ Persistent
+Y N N	Y	🔄 Recurring
+Y Y Y	N	✅ Resolved
+N N N	N	—
+
+
+This is better than using only DQ Rate if DQ Count is also considered an exception metric in your existing control.
+
+Example where this matters
+
+Suppose:
+
+	Previous	Current
+
+Records	1M	2M
+DQ Count	10K	20K
+DQ Rate	1%	1%
+
+
+DQ Rate is stable.
+
+But if 20K DQ records is materially outside this UIM's historical DQ-count range, you may still want the DQ exception logic to recognize it.
+
+So:
+
+> Pattern = lifecycle of the overall DQ exception, not simply the percentage trend.
+
+
+
+
+---
+
+Then Action combines everything
+
+This is where Record Volume, DQ Count, DQ Rate, Pattern and previous investigation history come together.
+
+I would derive Recommended Action after all the analysis.
+
+🟢 No Action
+
+Example:
+
+> Volume = Within Expected
+DQ Count = Within Expected
+DQ Rate = Within Expected
+Pattern = —
+
+
+
+→ No Action
+
+Or:
+
+> DQ previously abnormal but current is back within expected range
+Pattern = Resolved
+
+
+
+→ No Action
+
+
+---
+
+🟡 Monitor
+
+Example:
+
+> DQ Count = Above Expected
+DQ Rate = Above Expected
+Trend = Improving
+Pattern = Persistent
+
+
+
+The issue still exists, but it is moving toward normal.
+
+→ Monitor
+
+Another example:
+
+> DQ Count = Above
+DQ Rate = Within
+Record Volume = Above
+
+
+
+This might simply be volume-driven.
+
+→ Monitor / Review, rather than immediately investigate.
+
+
+---
+
+🟠 Review Previous Observation
+
+Example:
+
+> DQ Rate = Above
+Trend = Deteriorating
+Pattern = Recurring
+Previous Hive outcome = Expected/Normal
+Reusable = Yes
+
+
+
+→ Review Previous Observation
+
+The analyst first decides whether the previous explanation still applies.
+
+
+---
+
+🔴 Investigate in Hive
+
+Strong candidate:
+
+> Volume = Within Expected
+DQ Count = Above Expected
+DQ Rate = Above Expected
+DQ Trend = Deteriorating
+Pattern = New
+Previous explanation = None
+
+
+
+→ Investigate
+
+This is especially interesting because:
+
+> Record volume looks normal, but both the number and proportion of DQ records are abnormal.
+
+
+
+Another:
+
+> DQ Rate = significantly above expected
+Pattern = Recurring
+Previous observation = not reusable
+
+
+
+→ Investigate
+
+
+---
+
+I'd make Action rule-based, not statistical alone
+
+Think of the calculation as:
+
+1. Volume context
+
+Volume Status
+
+↓
+
+2. DQ evidence
+
+DQ Count Status + DQ Rate Status
+
+↓
+
+3. Direction
+
+DQ Count Trend + DQ Rate Trend
+
+↓
+
+4. History
+
+New / Persistent / Recurring / Resolved
+
+↓
+
+5. Existing analyst knowledge
+
+Previous Outcome + Reusable Y/N
+
+↓
+
+Recommended Action
+
+No Action | Monitor | Review Previous | Investigate
+
+For example:
+
+Volume	DQ Count	DQ Rate	DQ Trend	Pattern	Previous Finding	Action
+
+Within	Within	Within	Stable	—	—	🟢 No Action
+Above	Above	Within	Stable	—	—	🟡 Monitor
+Within	Above	Above	Deteriorating	New	None	🔴 Investigate
+Within	Above	Above	Improving	Persistent	Known Issue	🟡 Monitor
+Within	Above	Above	Deteriorating	Recurring	Expected, reusable	🟠 Review Previous
+Within	Above	Above	Deteriorating	Recurring	None	🔴 Investigate
+Any	Within	Within	Improving	Resolved	—	🟢 No Action
+
+
+So in your current table
+
+I would keep exactly one:
+
+Pattern
+
+and one:
+
+Action
+
+after the three metric-analysis sections:
+
+Record Volume → DQ Count → DQ Rate → Pattern → Action
+
+That gives each row one final DQ story and one next step, rather than asking the analyst to interpret three different patterns and three different actions.
