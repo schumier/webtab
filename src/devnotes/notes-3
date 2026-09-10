@@ -1,0 +1,244 @@
+Yes. I would merge those source-report controls into the new analysis rather than replace them. They actually make the dashboard stronger because you now have two different layers:
+
+Source/business control = “Does this breach the threshold already defined by the source report?”
+Historical/statistical analysis = “Is the current behavior unusual compared with this UIM's own history?”
+
+Those answer different questions.
+
+For each UIM/field, I would structure the analysis conceptually like this:
+
+Area	Field	Meaning
+
+Current	Records	Current population
+Current	DQ Count	Current exceptions
+Current	DQ Rate	Current DQ %
+Source Control	Threshold Limit	Existing predefined DQ-rate limit
+	Source Category	Within / Above Threshold
+	Source Reason/Finding	Existing explanation, when provided
+Historical Analysis	Volume Status	Within / Above / Below historical expected range
+	DQ Count Status	Historical statistical status
+	DQ Rate Status	Historical statistical status
+	Pattern	New / Persistent / Recurring / Resolved
+Decision	Action	Investigate / Review / Monitor / No Action
+
+
+The key is don't combine Source Category and our statistical DQ Rate Status into one status.
+
+For example:
+
+DQ Rate	Source Limit	Source Category	Historical Status	Pattern	Action
+
+5.20%	3.00%	🔴 Above Threshold	🔴 Above Expected	New	🔴 Investigate
+2.50%	3.00%	🟢 Within Threshold	🔴 Above Expected	New	🟠 Review
+4.00%	3.00%	🔴 Above Threshold	🟢 Within Expected	Persistent	🟡 Monitor/Review
+1.50%	3.00%	🟢 Within Threshold	🟢 Within Expected	—	🟢 No Action
+
+
+The second and third examples are especially valuable. A UIM can still be within the official threshold but suddenly behave very differently from its history. Conversely, something can remain above its official threshold but be a longstanding known condition.
+
+What to do with the existing reason
+
+Your existing source Reason/Finding should also stay separate from the analyst's new Hive investigation observation.
+
+I would distinguish:
+
+Source Finding — comes from the existing report/source process.
+Investigation Observation — entered by your analyst after reviewing the anomaly/Hive.
+
+That avoids accidentally treating a source-system reason as something your dashboard discovered.
+
+I would simplify your current table
+
+Your screenshot currently has:
+
+Prev Category | Current Category | Prev Threshold Limit | Current Threshold Limit | Previous Finding
+
+That's useful, but together with all our new columns the table will become extremely wide.
+
+I'd change the main table to something like:
+
+Identity Country | Domain | Filename | Field
+
+Current Records | Δ Records | Records 6ME | DQ Count | Δ DQ | DQ 6ME | DQ Rate | Δ Rate | Rate 6ME
+
+Source Control Threshold | Source Category
+
+Analysis Vol Status | DQ Count Status | DQ Rate Status | Pattern | Action
+
+Then move:
+
+Previous Threshold
+Previous Category
+Previous Finding/Reason
+
+into the row detail panel below.
+
+That information is valuable for understanding why, but doesn't need to occupy the main screening table.
+
+The detail panel becomes much stronger
+
+When UIM001 is clicked, I'd show something like:
+
+> Source Control
+Current DQ Rate: 5.20% | Threshold: 3.00% | 🔴 Above Threshold
+Previous Category: Within Threshold
+Source Finding: No finding provided
+
+
+
+Then below it:
+
+> Historical Analysis
+DQ Rate expected range: 1.60–2.40% | Current: 5.20% | 🔴 Above Expected
+Pattern: New
+Recommended Action: Investigate
+
+
+
+And then your existing tabs:
+
+Trend Analysis | Monthly Data | Investigation History | Add Observation
+
+This also improves the Action logic
+
+Now the recommended action can consider both the existing control and the additional analysis:
+
+Existing threshold breached?
+        +
+Historically unusual?
+        +
+New / Persistent / Recurring?
+        +
+Existing source reason?
+        +
+Previous investigation finding?
+        ↓
+Recommended Action
+
+For example, if it's Above Threshold + Above Expected + New + no source reason, that's a very strong Investigate.
+
+If it's Above Threshold + Persistent + source already provides a known reason, it may be Review/Monitor rather than automatically sending someone to Hive again.
+
+This positioning is also safer organizationally: the dashboard isn't creating a competing DQ threshold. The existing threshold remains the business/source control; Median/MAD provides an additional historical-anomaly signal to help prioritize investigation.
+
+
+
+Yes. I would make the final action rule-based and deterministic, so users can understand why a row became Investigate, Review, Monitor, or No Action.
+
+The cleanest logic is to combine 5 things: existing source threshold/category, historical statistical status, trend, issue pattern, and available reason/previous observation.
+
+Condition	Final Action
+
+Source = Above Threshold and Historical DQ Rate = Above Expected and Pattern = New/Recurring and no valid reason	🔴 Investigate
+Source = Above Threshold and DQ Rate deteriorating strongly, even if history is limited	🔴 Investigate
+Source = Within Threshold but Historical DQ Rate = Above Expected and Trend = Deteriorating	🟠 Review
+Source = Above Threshold but known/reusable reason exists and pattern is Persistent	🟡 Monitor
+Source = Above Threshold and previous finding exists, but it is not clearly reusable	🟠 Review Previous Observation
+Source = Within Threshold and Historical Status = Within Expected and Trend stable/improving	🟢 No Action
+Previously abnormal but now back within threshold/expected range	🟢 No Action / Resolved
+DQ Count above expected but DQ Rate within expected and Record Volume is also above expected	🟡 Monitor because likely volume-driven
+
+
+A good priority order is:
+
+1. Check official/source control breach
+2. Check whether DQ Rate is historically unusual
+3. Check DQ trend
+4. Check pattern: New / Persistent / Recurring / Resolved
+5. Check source reason / previous reusable observation
+6. Check whether DQ Count movement is explained by record-volume movement
+7. Assign final action
+
+You can implement it with a precedence rule like this:
+
+def final_action(row):
+
+    source_breach = row["Source_Category"] == "Above Threshold"
+    dq_rate_above = row["DQ_Rate_Status"] == "Above"
+    dq_count_above = row["DQ_Count_Status"] == "Above"
+    volume_above = row["Volume_Status"] == "Above"
+
+    deteriorating = row["DQ_Rate_Trend"] == "Deteriorating"
+    pattern = row["Pattern"]
+
+    has_reason = bool(row["Source_Reason"])
+    reusable = row["Reusable_Previous_Observation"] == "Yes"
+
+    # 1. Resolved / normal
+    if (
+        not source_breach
+        and row["DQ_Rate_Status"] == "Within"
+        and row["DQ_Count_Status"] in ["Within", "Below"]
+        and row["DQ_Rate_Trend"] in ["Stable", "Improving"]
+    ):
+        return "No Action"
+
+    # 2. Strong new or recurring deterioration
+    if (
+        source_breach
+        and dq_rate_above
+        and deteriorating
+        and pattern in ["New", "Recurring"]
+        and not reusable
+    ):
+        return "Investigate"
+
+    # 3. Breach + unusual rate, even without clear trend
+    if (
+        source_breach
+        and dq_rate_above
+        and not reusable
+    ):
+        return "Investigate"
+
+    # 4. Within official limit but historically unusual
+    if (
+        not source_breach
+        and dq_rate_above
+        and deteriorating
+    ):
+        return "Review"
+
+    # 5. Existing explanation / known condition
+    if (
+        source_breach
+        and pattern == "Persistent"
+        and (has_reason or reusable)
+    ):
+        return "Monitor"
+
+    # 6. Previous observation exists
+    if (
+        source_breach
+        and has_reason
+    ):
+        return "Review Previous Observation"
+
+    # 7. DQ count movement likely explained by volume
+    if (
+        dq_count_above
+        and row["DQ_Rate_Status"] == "Within"
+        and volume_above
+    ):
+        return "Monitor"
+
+    return "Monitor"
+
+I would slightly refine the action names to just four:
+
+🔴 Investigate
+🟠 Review Previous / Review
+🟡 Monitor
+🟢 No Action
+
+Then, separately, create an Action Reason column so the user understands the decision. For example:
+
+Investigate — Above source threshold + above historical expected range + new deterioration
+
+or
+
+Monitor — DQ count increased, but rate is stable and record volume also increased
+
+That Action Reason will make the logic much easier to defend in your team review.
+
+One important rule: source threshold should have higher authority than Median/MAD, because the threshold already exists as the business control. The statistical analysis should add prioritization and context, not override it.
